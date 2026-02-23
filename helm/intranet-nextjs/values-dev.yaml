@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  repository: cozyruiz/intranet-nextjs
+  tag: "1.1"
+  pullPolicy: Always
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: nextjs.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  NODE_ENV: development
+  ENVIRONMENT: "DEV"
