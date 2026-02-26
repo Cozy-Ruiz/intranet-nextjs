@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: cozyruiz/intranet-nextjs
-  tag: "1.1"
+  tag: "1.7"
   pullPolicy: Always
 
 ingress:
@@ -17,3 +17,4 @@ ingress:
 env:
   NODE_ENV: development
   ENVIRONMENT: "DEV"
+  NEXT_PUBLIC_ENVIRONMENT: "DEV"

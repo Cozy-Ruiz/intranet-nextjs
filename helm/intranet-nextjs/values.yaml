@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: cozyruiz/intranet-nextjs
-  tag: "1.1"
+  tag: "1.7"
   pullPolicy: Always
 
 service:
