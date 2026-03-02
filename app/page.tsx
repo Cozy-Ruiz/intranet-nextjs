@@ -16,7 +16,7 @@ export default function Home() {
         />
 
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Hola cozy , estamos en ambiente {process.env.ENVIRONMENT}
+          Hola cozy!! , estamos en ambiente {process.env.ENVIRONMENT}
         </p>
 
         <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">

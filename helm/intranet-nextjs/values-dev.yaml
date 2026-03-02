@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: cozyruiz/intranet-nextjs
-  tag: "1.7"
+  tag: "latest"
   pullPolicy: Always
 
 ingress:
