@@ -42,4 +42,3 @@ jobs:
           helm upgrade --install intranet-nextjs-dev ./helm/intranet-nextjs \
             -f helm/intranet-nextjs/values-dev.yaml \
             --set image.tag=${{ github.sha }} \
-            --kubeconfig kubeconfig
