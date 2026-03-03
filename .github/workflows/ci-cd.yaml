@@ -19,7 +19,7 @@ jobs:
   # CI - Build & Push Image
   # =========================
   build:
-    runs-on: [self-hosted, mac]
+    runs-on: self-hosted
 
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
@@ -52,7 +52,7 @@ jobs:
   deploy-dev:
     if: github.ref == 'refs/heads/dev'
     needs: build
-    runs-on: [self-hosted, mac]
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -70,7 +70,7 @@ jobs:
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     needs: build
-    runs-on: [self-hosted, mac]
+    runs-on: self-hosted
     environment: production   # 🔥 aquí vive el approval gate
 
     steps:
