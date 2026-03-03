@@ -10,7 +10,8 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -30,12 +31,12 @@ jobs:
           docker build -t $IMAGE_NAME:${{ github.sha }} .
           docker push $IMAGE_NAME:${{ github.sha }}
 
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
-        shell: bash
+      #- name: Set up kubeconfig
+      #  run: |
+      #    mkdir -p ~/.kube
+      #    echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+      #    chmod 600 ~/.kube/config
+      #  shell: bash
 
       - name: Deploy with Helm
         run: |
