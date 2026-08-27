@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GitHub Actions self-hosted runner: instalación y credenciales locales
+actions-runner/
+
+# Metadatos/forks de recursos de macOS
+._*
+.DS_Store
