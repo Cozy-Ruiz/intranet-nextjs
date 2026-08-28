@@ -72,6 +72,17 @@ jobs:
       - name: Verificar Helm
         run: helm version
 
+      - name: Configurar acceso a Kubernetes
+        run: |
+          export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
+          if [[ ! -f "$KUBECONFIG" ]]; then
+            echo "No se encontró el kubeconfig en $KUBECONFIG"
+            exit 1
+          fi
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          kubectl config current-context
+          kubectl cluster-info
+
       - name: Deploy with Helm (DEV)
         run: |
           helm upgrade --install intranet-nextjs-dev ./helm/intranet-nextjs \
@@ -98,6 +109,17 @@ jobs:
 
       - name: Verificar Helm
         run: helm version
+
+      - name: Configurar acceso a Kubernetes
+        run: |
+          export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
+          if [[ ! -f "$KUBECONFIG" ]]; then
+            echo "No se encontró el kubeconfig en $KUBECONFIG"
+            exit 1
+          fi
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          kubectl config current-context
+          kubectl cluster-info
 
       - name: Deploy with Helm (PROD)
         run: |
