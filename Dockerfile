@@ -9,7 +9,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# -------- Production Stage --------
+# -------- Production Stage  --------
 FROM node:26-slim
 
 WORKDIR /app
