@@ -41,6 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # GitHub Actions self-hosted runner: instalación y credenciales locales
+.git
 actions-runner/
 
 # Metadatos/forks de recursos de macOS
