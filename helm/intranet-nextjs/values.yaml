@@ -9,6 +9,9 @@ service:
   type: ClusterIP
   port: 3000
 
+monitoring:
+  enabled: false
+
 ingress:
   enabled: true
   className: nginx
