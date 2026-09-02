@@ -83,6 +83,17 @@ jobs:
           kubectl config current-context
           kubectl cluster-info
 
+      - name: Ensure ingress-nginx is installed
+        run: |
+          if ! kubectl get deployment ingress-nginx-controller -n ingress-nginx >/dev/null 2>&1; then
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          fi
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=120s
+          kubectl get pods,svc,ingress -A
+
       - name: Deploy with Helm (DEV)
         run: |
           helm upgrade --install intranet-nextjs-dev ./helm/intranet-nextjs \
@@ -120,6 +131,17 @@ jobs:
           echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
           kubectl config current-context
           kubectl cluster-info
+
+      - name: Ensure ingress-nginx is installed
+        run: |
+          if ! kubectl get deployment ingress-nginx-controller -n ingress-nginx >/dev/null 2>&1; then
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          fi
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=120s
+          kubectl get pods,svc,ingress -A
 
       - name: Deploy with Helm (PROD)
         run: |
