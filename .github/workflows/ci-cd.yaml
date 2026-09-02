@@ -94,11 +94,23 @@ jobs:
             --timeout=120s
           kubectl get pods,svc,ingress -A
 
+      - name: Verify ServiceMonitor support
+        run: |
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+          if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
+            echo "No existe la CRD servicemonitors.monitoring.coreos.com. Instala Prometheus Operator antes del despliegue."
+            exit 1
+          fi
+
       - name: Deploy with Helm (DEV)
         run: |
           helm upgrade --install intranet-nextjs-dev ./helm/intranet-nextjs \
             -f helm/intranet-nextjs/values-dev.yaml \
             --set image.tag=${{ needs.build.outputs.image_tag }}
+          kubectl wait --namespace monitoring \
+            --for=create \
+            servicemonitor/intranet-nextjs-dev-monitor \
+            --timeout=30s
 
   # =========================
   # CD - Deploy to PROD
@@ -143,8 +155,20 @@ jobs:
             --timeout=120s
           kubectl get pods,svc,ingress -A
 
+      - name: Verify ServiceMonitor support
+        run: |
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+          if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
+            echo "No existe la CRD servicemonitors.monitoring.coreos.com. Instala Prometheus Operator antes del despliegue."
+            exit 1
+          fi
+
       - name: Deploy with Helm (PROD)
         run: |
           helm upgrade --install intranet-nextjs-prod ./helm/intranet-nextjs \
             -f helm/intranet-nextjs/values-prod.yaml \
             --set image.tag=${{ needs.build.outputs.image_tag }}
+          kubectl wait --namespace monitoring \
+            --for=create \
+            servicemonitor/intranet-nextjs-prod-monitor \
+            --timeout=30s
