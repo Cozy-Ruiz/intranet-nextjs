@@ -98,9 +98,20 @@ jobs:
         run: |
           kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
           if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
-            echo "No existe la CRD servicemonitors.monitoring.coreos.com. Instala Prometheus Operator antes del despliegue."
-            exit 1
+            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+            helm repo update
+            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+              --namespace monitoring \
+              --set grafana.enabled=true \
+              --set alertmanager.enabled=false \
+              --set nodeExporter.enabled=false \
+              --set kubeStateMetrics.enabled=false \
+              --wait \
+              --timeout 5m
           fi
+          kubectl wait --for=condition=Established \
+            crd/servicemonitors.monitoring.coreos.com \
+            --timeout=120s
 
       - name: Deploy with Helm (DEV)
         run: |
@@ -159,9 +170,20 @@ jobs:
         run: |
           kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
           if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
-            echo "No existe la CRD servicemonitors.monitoring.coreos.com. Instala Prometheus Operator antes del despliegue."
-            exit 1
+            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+            helm repo update
+            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+              --namespace monitoring \
+              --set grafana.enabled=true \
+              --set alertmanager.enabled=false \
+              --set nodeExporter.enabled=false \
+              --set kubeStateMetrics.enabled=false \
+              --wait \
+              --timeout 5m
           fi
+          kubectl wait --for=condition=Established \
+            crd/servicemonitors.monitoring.coreos.com \
+            --timeout=120s
 
       - name: Deploy with Helm (PROD)
         run: |
