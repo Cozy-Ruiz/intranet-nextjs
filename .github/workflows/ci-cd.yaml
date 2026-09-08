@@ -97,18 +97,22 @@ jobs:
       - name: Verify ServiceMonitor support
         run: |
           kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-          if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
-            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
-            helm repo update
-            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-              --namespace monitoring \
-              --set grafana.enabled=true \
-              --set alertmanager.enabled=false \
-              --set nodeExporter.enabled=false \
-              --set kubeStateMetrics.enabled=false \
-              --wait \
-              --timeout 5m
-          fi
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+          helm repo update
+          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --set grafana.enabled=true \
+            --set grafana.ingress.enabled=true \
+            --set grafana.ingress.ingressClassName=nginx \
+            --set grafana.ingress.hosts[0]=grafana.local \
+            --set prometheus.ingress.enabled=true \
+            --set prometheus.ingress.ingressClassName=nginx \
+            --set prometheus.ingress.hosts[0]=prometheus.local \
+            --set alertmanager.enabled=false \
+            --set nodeExporter.enabled=false \
+            --set kubeStateMetrics.enabled=false \
+            --wait \
+            --timeout 5m
           kubectl wait --for=condition=Established \
             crd/servicemonitors.monitoring.coreos.com \
             --timeout=120s
@@ -169,18 +173,22 @@ jobs:
       - name: Verify ServiceMonitor support
         run: |
           kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-          if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
-            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
-            helm repo update
-            helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-              --namespace monitoring \
-              --set grafana.enabled=true \
-              --set alertmanager.enabled=false \
-              --set nodeExporter.enabled=false \
-              --set kubeStateMetrics.enabled=false \
-              --wait \
-              --timeout 5m
-          fi
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+          helm repo update
+          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --set grafana.enabled=true \
+            --set grafana.ingress.enabled=true \
+            --set grafana.ingress.ingressClassName=nginx \
+            --set grafana.ingress.hosts[0]=grafana.local \
+            --set prometheus.ingress.enabled=true \
+            --set prometheus.ingress.ingressClassName=nginx \
+            --set prometheus.ingress.hosts[0]=prometheus.local \
+            --set alertmanager.enabled=false \
+            --set nodeExporter.enabled=false \
+            --set kubeStateMetrics.enabled=false \
+            --wait \
+            --timeout 5m
           kubectl wait --for=condition=Established \
             crd/servicemonitors.monitoring.coreos.com \
             --timeout=120s
