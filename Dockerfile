@@ -20,4 +20,4 @@ COPY --from=builder /app ./
 
 EXPOSE 3000
 
-CMD ["npm", "starts"]
+CMD ["npm", "start"]

@@ -121,7 +121,10 @@ jobs:
         run: |
           helm upgrade --install intranet-nextjs-dev ./helm/intranet-nextjs \
             -f helm/intranet-nextjs/values-dev.yaml \
-            --set image.tag=${{ needs.build.outputs.image_tag }}
+            --set image.tag=${{ needs.build.outputs.image_tag }} \
+            --wait \
+            --timeout 5m
+          kubectl rollout status deployment/intranet-nextjs-dev --timeout=120s
           kubectl wait --namespace monitoring \
             --for=create \
             servicemonitor/intranet-nextjs-dev-monitor \
@@ -197,7 +200,10 @@ jobs:
         run: |
           helm upgrade --install intranet-nextjs-prod ./helm/intranet-nextjs \
             -f helm/intranet-nextjs/values-prod.yaml \
-            --set image.tag=${{ needs.build.outputs.image_tag }}
+            --set image.tag=${{ needs.build.outputs.image_tag }} \
+            --wait \
+            --timeout 5m
+          kubectl rollout status deployment/intranet-nextjs-prod --timeout=120s
           kubectl wait --namespace monitoring \
             --for=create \
             servicemonitor/intranet-nextjs-prod-monitor \
