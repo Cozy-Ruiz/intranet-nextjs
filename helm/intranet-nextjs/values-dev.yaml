@@ -18,8 +18,10 @@ env:
   NODE_ENV: development
   ENVIRONMENT: "DEV"
   NEXT_PUBLIC_ENVIRONMENT: "DEV"
-  DB_HOST: "host.docker.internal"
-  DB_PORT: "3307"
+  DB_HOST: "192.1.172.9"
+  DB_PORT: "3306"
+  DB_USER: "GEA"
+  DB_PASS: "7b1QqK#m1F3m"
 
 monitoring:
   enabled: true

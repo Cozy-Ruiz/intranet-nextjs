@@ -13,13 +13,13 @@ const options = {
     ...(process.env.NODE_ENV === 'production'
         ? [
             {
-            url: 'http://localhost:3000/backend',
+            url: 'http://next.prod/backend',
             description: 'Servidor en producción',
             },
         ]
         : [
             {
-            url: 'http://localhost:3000/backend',
+            url: 'http://next.local/backend',
             description: 'Servidor local seguro',
             },
         ]),
