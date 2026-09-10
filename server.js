@@ -1,18 +1,27 @@
+const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const next = require('next');
 const { parse } = require('url');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./backend/swagger/swaggerSpec');
 
 require('dotenv').config();
 
-const httpsOptions = {
-    key: fs.readFileSync(path.join(__dirname, process.env.SSL_KEY_FILE)),
-    cert: fs.readFileSync(path.join(__dirname, process.env.SSL_CRT_FILE)),
-};
+const port = Number(process.env.PORT || 3000);
+const sslKeyFile = process.env.SSL_KEY_FILE;
+const sslCertificateFile = process.env.SSL_CRT_FILE;
+const sslEnabled = Boolean(sslKeyFile && sslCertificateFile);
+
+const httpsOptions = sslEnabled
+  ? {
+      key: fs.readFileSync(path.resolve(__dirname, sslKeyFile)),
+      cert: fs.readFileSync(path.resolve(__dirname, sslCertificateFile)),
+    }
+  : null;
 
 // Inicializa Next.js
 const dev = process.env.NODE_ENV !== 'production';
@@ -71,9 +80,17 @@ expressApp.use((req, res, next) => {
   return handle(req, res, parsedUrl);
 });
 
-// Ejecuta servidor HTTPS
+// Ejecuta HTTP en contenedores; HTTPS queda disponible cuando se configuran certificados.
 nextApp.prepare().then(() => {
-    https.createServer(httpsOptions, expressApp).listen(2053, () => {
-        console.log('✅ Sistema completo corriendo en: https://localhost:2053');
-    });
+  const server = httpsOptions
+    ? https.createServer(httpsOptions, expressApp)
+    : http.createServer(expressApp);
+
+  server.listen(port, () => {
+    const protocol = sslEnabled ? 'https' : 'http';
+    console.log(`Sistema completo corriendo en: ${protocol}://localhost:${port}`);
+  });
+}).catch((error) => {
+  console.error('No se pudo iniciar Next.js:', error);
+  process.exit(1);
 });
