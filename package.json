@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "starts": "next start",
-    "start": "LD_LIBRARY_PATH=/opt/oracle/instantclient_23_26 node server.js",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
