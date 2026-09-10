@@ -13,13 +13,13 @@ const options = {
     ...(process.env.NODE_ENV === 'production'
         ? [
             {
-            url: 'https://react.escalante.com.mx:2053/backend',
+            url: 'http://localhost:3000/backend',
             description: 'Servidor en producción',
             },
         ]
         : [
             {
-            url: 'https://localhost:3000/backend',
+            url: 'http://localhost:3000/backend',
             description: 'Servidor local seguro',
             },
         ]),
