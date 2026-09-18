@@ -19,5 +19,7 @@ env:
   ENVIRONMENT: "PROD"
   NEXT_PUBLIC_ENVIRONMENT: "PROD"
 
+envSecretName: intranet-nextjs-prod-env
+
 monitoring:
   enabled: true

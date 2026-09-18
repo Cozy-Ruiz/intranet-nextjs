@@ -19,5 +19,7 @@ env:
   ENVIRONMENT: "DEV"
   NEXT_PUBLIC_ENVIRONMENT: "DEV"
 
+envSecretName: intranet-nextjs-dev-env
+
 monitoring:
   enabled: true

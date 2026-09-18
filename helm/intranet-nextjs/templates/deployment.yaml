@@ -21,5 +21,8 @@ spec:
             - name: {{ $key }}
               value: "{{ $value }}"
             {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.envSecretName }}
           ports:
             - containerPort: 3000
