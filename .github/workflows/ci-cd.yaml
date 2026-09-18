@@ -59,6 +59,7 @@ jobs:
     if: github.ref == 'refs/heads/dev'
     needs: build
     runs-on: self-hosted
+    environment: development
 
     steps:
       - name: Checkout
@@ -116,6 +117,45 @@ jobs:
           kubectl wait --for=condition=Established \
             crd/servicemonitors.monitoring.coreos.com \
             --timeout=120s
+
+      - name: Create runtime Secret (DEV)
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_PORT: ${{ secrets.ORACLE_PORT }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_PASS: ${{ secrets.ORACLE_PASS }}
+          ORACLE_SERVICE_NAME: ${{ secrets.ORACLE_SERVICE_NAME }}
+          ORACLE_MODE: ${{ secrets.ORACLE_MODE }}
+          ORACLE_CLIENT_LIB_DIR: ${{ secrets.ORACLE_CLIENT_LIB_DIR }}
+        run: |
+          required=(JWT_SECRET DB_HOST DB_PORT DB_USER DB_PASS ORACLE_HOST ORACLE_PORT ORACLE_USER ORACLE_PASS ORACLE_SERVICE_NAME ORACLE_MODE ORACLE_CLIENT_LIB_DIR)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "Falta el secreto de GitHub Environment: $name"
+              exit 1
+            fi
+          done
+          kubectl create secret generic intranet-nextjs-dev-env \
+            --from-literal=JWT_SECRET="$JWT_SECRET" \
+            --from-literal=DB_HOST="$DB_HOST" \
+            --from-literal=DB_PORT="$DB_PORT" \
+            --from-literal=DB_USER="$DB_USER" \
+            --from-literal=DB_PASS="$DB_PASS" \
+            --from-literal=DB_NAME="$DB_NAME" \
+            --from-literal=ORACLE_HOST="$ORACLE_HOST" \
+            --from-literal=ORACLE_PORT="$ORACLE_PORT" \
+            --from-literal=ORACLE_USER="$ORACLE_USER" \
+            --from-literal=ORACLE_PASS="$ORACLE_PASS" \
+            --from-literal=ORACLE_SERVICE_NAME="$ORACLE_SERVICE_NAME" \
+            --from-literal=ORACLE_MODE="$ORACLE_MODE" \
+            --from-literal=ORACLE_CLIENT_LIB_DIR="$ORACLE_CLIENT_LIB_DIR" \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy with Helm (DEV)
         run: |
@@ -192,6 +232,45 @@ jobs:
           kubectl wait --for=condition=Established \
             crd/servicemonitors.monitoring.coreos.com \
             --timeout=120s
+
+      - name: Create runtime Secret (PROD)
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_PORT: ${{ secrets.ORACLE_PORT }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_PASS: ${{ secrets.ORACLE_PASS }}
+          ORACLE_SERVICE_NAME: ${{ secrets.ORACLE_SERVICE_NAME }}
+          ORACLE_MODE: ${{ secrets.ORACLE_MODE }}
+          ORACLE_CLIENT_LIB_DIR: ${{ secrets.ORACLE_CLIENT_LIB_DIR }}
+        run: |
+          required=(JWT_SECRET DB_HOST DB_PORT DB_USER DB_PASS ORACLE_HOST ORACLE_PORT ORACLE_USER ORACLE_PASS ORACLE_SERVICE_NAME ORACLE_MODE ORACLE_CLIENT_LIB_DIR)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "Falta el secreto de GitHub Environment: $name"
+              exit 1
+            fi
+          done
+          kubectl create secret generic intranet-nextjs-prod-env \
+            --from-literal=JWT_SECRET="$JWT_SECRET" \
+            --from-literal=DB_HOST="$DB_HOST" \
+            --from-literal=DB_PORT="$DB_PORT" \
+            --from-literal=DB_USER="$DB_USER" \
+            --from-literal=DB_PASS="$DB_PASS" \
+            --from-literal=DB_NAME="$DB_NAME" \
+            --from-literal=ORACLE_HOST="$ORACLE_HOST" \
+            --from-literal=ORACLE_PORT="$ORACLE_PORT" \
+            --from-literal=ORACLE_USER="$ORACLE_USER" \
+            --from-literal=ORACLE_PASS="$ORACLE_PASS" \
+            --from-literal=ORACLE_SERVICE_NAME="$ORACLE_SERVICE_NAME" \
+            --from-literal=ORACLE_MODE="$ORACLE_MODE" \
+            --from-literal=ORACLE_CLIENT_LIB_DIR="$ORACLE_CLIENT_LIB_DIR" \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy with Helm (PROD)
         run: |
