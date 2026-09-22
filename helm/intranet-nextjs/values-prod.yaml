@@ -23,5 +23,7 @@ env:
   DB_USER: "GEA"
   DB_PASS: "7b1QqK#m1F3m"
 
+envSecretName: intranet-nextjs-prod-env
+
 monitoring:
   enabled: true
