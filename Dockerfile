@@ -18,8 +18,9 @@ ARG ORACLE_IC_BUILD=2326000
 RUN apt-get update \
 	&& (apt-get install -y --no-install-recommends ca-certificates curl unzip libaio1t64 \
 			|| apt-get install -y --no-install-recommends ca-certificates curl unzip libaio1) \
-	&& aio_lib=$(find /usr/lib -type f -name 'libaio.so.1t64' -print -quit) \
-	&& if [ -n "$aio_lib" ]; then ln -s "$aio_lib" "${aio_lib%.1t64}.1"; fi \
+	&& aio_lib=$(find /usr/lib -name 'libaio.so.1t64' -print -quit) \
+	&& test -n "$aio_lib" \
+	&& ln -sfn "$aio_lib" "${aio_lib%.1t64}.1" \
 	&& mkdir -p /opt/oracle \
 	&& curl -fL "https://download.oracle.com/otn_software/linux/instantclient/${ORACLE_IC_BUILD}/instantclient-basic-linux.arm64-${ORACLE_IC_VERSION}.zip" \
 			 -o /tmp/instantclient.zip \
