@@ -22,7 +22,9 @@ RUN apt-get update \
 	&& curl -fL "https://download.oracle.com/otn_software/linux/instantclient/${ORACLE_IC_BUILD}/instantclient-basic-linux.arm64-${ORACLE_IC_VERSION}.zip" \
 			 -o /tmp/instantclient.zip \
 	&& unzip -q /tmp/instantclient.zip -d /opt/oracle \
-	&& ln -s /opt/oracle/instantclient_23_26/libclntsh.so.* /opt/oracle/instantclient_23_26/libclntsh.so \
+	  && oracle_lib=$(find /opt/oracle/instantclient_23_26 -maxdepth 1 -type f -name 'libclntsh.so.*' -print -quit) \
+	  && test -n "$oracle_lib" \
+	  && ln -sfn "$oracle_lib" /opt/oracle/instantclient_23_26/libclntsh.so \
 	&& echo /opt/oracle/instantclient_23_26 > /etc/ld.so.conf.d/oracle-instantclient.conf \
 	&& ldconfig \
 	&& rm -f /tmp/instantclient.zip \
