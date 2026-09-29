@@ -19,7 +19,15 @@ export async function GET( request: NextRequest ) {
     try {
     connection = await getConnection();
 
-    const id  = request.nextUrl.pathname.split("/").pop();
+    const id = request.nextUrl.pathname.split("/").pop();
+
+    if (!id) {
+        return NextResponse.json({ error: "Parámetro 'id' requerido" }, { status: 400 });
+    }
+
+    if (!Number.isFinite(id)) {
+        return NextResponse.json({ error: "Parámetro 'id' inválido" }, { status: 400 });
+    }
 
     const [result]: [any[], any] = await connection.execute(
         "SELECT * FROM registro_unidades WHERE xn_id = ?",
