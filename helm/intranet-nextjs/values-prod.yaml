@@ -18,10 +18,6 @@ env:
   NODE_ENV: production
   ENVIRONMENT: "PROD"
   NEXT_PUBLIC_ENVIRONMENT: "PROD"
-  DB_HOST: "192.1.172.9"
-  DB_PORT: "3306"
-  DB_USER: "GEA"
-  DB_PASS: "7b1QqK#m1F3m"
 
 envSecretName: intranet-nextjs-prod-env
 
