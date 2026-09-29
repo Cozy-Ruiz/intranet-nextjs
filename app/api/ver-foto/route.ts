@@ -35,10 +35,10 @@ export async function GET(req: NextRequest) {
     }
 
     const fotoBuffer = rows[0].xt_foto as Buffer;
-    // Si tienes almacenado el mime, lo usas; de lo contrario, default jpeg
+    const fotoBytes = Uint8Array.from(fotoBuffer);
     const mimeType = "image/jpeg";
 
-      return new NextResponse(fotoBuffer, {
+    return new NextResponse(fotoBytes, {
       status: 200,
       headers: {
         "Content-Type": mimeType,
