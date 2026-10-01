@@ -8,8 +8,14 @@ image:
 ingress:
   enabled: true
   className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  tls:
+    - secretName: escalante-wildcard-tls
+      hosts:
+        - intranet-nextjs-prod.escalante.com.mx
   hosts:
-    - host: nextjs.prod
+    - host: intranet-nextjs-prod.escalante.com.mx
       paths:
         - path: /
           pathType: Prefix
