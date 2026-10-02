@@ -1,0 +1,15 @@
+.git
+.github
+.next
+node_modules
+actions-runner
+certs
+coverage
+.DS_Store
+*.log
+*.key
+*.pem
+*.crt
+.env
+.env.*
+!.env.example

@@ -14,15 +14,17 @@ FROM node:26-slim
 
 ARG ORACLE_IC_VERSION=23.26.0.0.0
 ARG ORACLE_IC_BUILD=2326000
+ARG TARGETARCH
 
 RUN apt-get update \
 	&& (apt-get install -y --no-install-recommends ca-certificates curl unzip libaio1t64 \
 			|| apt-get install -y --no-install-recommends ca-certificates curl unzip libaio1) \
+	&& case "$TARGETARCH" in amd64) oracle_arch=x64 ;; arm64) oracle_arch=arm64 ;; *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; esac \
 	&& aio_lib=$(find /usr/lib -name 'libaio.so.1t64' -print -quit) \
 	&& test -n "$aio_lib" \
 	&& ln -sfn "$aio_lib" "${aio_lib%.1t64}.1" \
 	&& mkdir -p /opt/oracle \
-	&& curl -fL "https://download.oracle.com/otn_software/linux/instantclient/${ORACLE_IC_BUILD}/instantclient-basic-linux.arm64-${ORACLE_IC_VERSION}.zip" \
+	&& curl -fL "https://download.oracle.com/otn_software/linux/instantclient/${ORACLE_IC_BUILD}/instantclient-basic-linux.${oracle_arch}-${ORACLE_IC_VERSION}.zip" \
 			 -o /tmp/instantclient.zip \
 	&& unzip -q /tmp/instantclient.zip -d /opt/oracle \
 	  && oracle_lib=$(find /opt/oracle/instantclient_23_26 -maxdepth 1 -type f -name 'libclntsh.so.*' -print -quit) \
