@@ -77,7 +77,7 @@ exports.enviaCorreo = async (req, res) => {
       secure: false,
       auth: {
         user: 'calidad@escalante.com.mx',
-        pass: 'C4l1d4d1234'
+        pass: 'vvjgbgnkdpndqcjd'
         //user: 'backlog@escalante.com.mx',
         //pass: 'B4ckl0g1234'
         //user: 'archivos@escalante.com.mx',
@@ -378,7 +378,7 @@ exports.bajaUsuario = async (req, res) => {
   //console.log('BODY:', req.body);
   //console.log('FILE:', req.file);
 
-  const { usuario } = req.body;
+  const { usuario, usuarioSolicita } = req.body;
 
   if (!usuario) {
     return res.status(400).json({ message: 'El usuario es obligatorio' });
@@ -398,11 +398,60 @@ exports.bajaUsuario = async (req, res) => {
       ['2', usuario]
     );
 
-    // Baja Sistemas
+    // Update empleados
     await db.query(
-      'UPDATE perfiles.sistemas SET xt_estatus = ? WHERE xt_usuario = ?',
-      ['INACTIVO', usuario]
+      'UPDATE IGNORE intranet2.sgi_empleados SET xt_estatus = ? WHERE kf_usuario = ?',
+      ['2', usuario]
     );
+
+    const [sistemas] = await db.query(
+      'SELECT * FROM perfiles.sistemas WHERE xt_usuario = ? AND xt_estatus = ?',
+      [usuario, 'ACTIVO']
+    );
+
+    if(sistemas.length > 0){
+
+      const [usuarioDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuario]);
+      if (usuarioDetalles.length === 0) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
+      const ciudad = usuarioDetalles[0].xt_ciudad == 'CDMX' ? 'CMX' : usuarioDetalles[0].xt_ciudad == 'NLRD' ? 'NLR' : usuarioDetalles[0].xt_ciudad;
+
+      // Verificar si ya existe una solicitud previa de alta para el mismo usuario y sistema
+      const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'BAJA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistemas[0].xt_sistema, usuario]);
+      if (solicitudAnterior.length < 1) {
+        // Obtener datos para la solicitud
+        const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
+        const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
+        const solicitud = `GE-B-${ciudad}-${new Date().getFullYear().toString().slice(-2)}-${codigo.toString().padStart(5, '0')}`;
+        const titulo = `Solicitud de baja total de Sistemas para el usuario ${usuarioDetalles[0].xt_nombre}`;
+        const descripcion = `Solicitud de baja total de Sistemas para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
+
+        // Insertar en la tabla de Solicitudes Intranet
+        await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
+        // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
+        await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
+        await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
+
+        for (const sistema of sistemas) {
+          if (sistema.xt_sistema === 'AXAPTA' || sistema.xt_sistema === 'BODEGA' || sistema.xt_sistema === 'CORREO ELECTRONICO' || sistema.xt_sistema === 'MGS-E-LEARNING' || sistema.xt_sistema === 'PEDIMENTO' || sistema.xt_sistema === 'SCIA') {
+            
+            await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema.xt_sistema, 'BAJA', '', new Date(), usuarioSolicita]);
+
+            // Insertar en Solicitud Sistemas
+            await db.query(
+              'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
+              [usuario, sistema.xt_sistema, solicitud, 'BAJA']
+            );
+          }
+
+          this.bajaSistema({ body: { usuario, sistema: sistema.xt_sistema } });
+        }
+      }
+
+      
+    }
 
     res.status(201).json({ status: 'success', message: 'Usuario desactivado exitosamente' });
   } catch (error) {
@@ -447,15 +496,17 @@ exports.altaSistemaExterno = async (req, res) => {
       const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
       const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
       const solicitud = `GE-B-${ciudad}-${new Date().getFullYear().toString().slice(-2)}-${codigo.toString().padStart(5, '0')}`;
-      const titulo = `Solicitud de alta de Sistema ${sistema}`;
+      const titulo = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre}`;
       const descripcion = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
 
       // Insertar en la tabla de Solicitudes Intranet
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
       // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 2, 'ASIGNADA', new Date(), usuarioSolicita]);
+      //await new Promise(resolve => setTimeout(resolve, 1000));
+      //await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 2, 'ASIGNADA', new Date(), usuarioSolicita]);
+      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'ALTA', '', new Date(), usuarioSolicita]);
+      await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
 
       // Insertar en Solicitud Sistemas
       await db.query(
@@ -486,6 +537,39 @@ exports.bajaSistemaExterno = async (req, res) => {
   }
 
   try {
+    const [usuarioDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuario]);
+    if (usuarioDetalles.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    const ciudad = usuarioDetalles[0].xt_ciudad == 'CDMX' ? 'CMX' : usuarioDetalles[0].xt_ciudad == 'NLRD' ? 'NLR' : usuarioDetalles[0].xt_ciudad;
+
+    // Verificar si ya existe una solicitud previa de alta para el mismo usuario y sistema
+    const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'BAJA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistema, usuario]);
+    if (solicitudAnterior.length < 1) {
+      // Obtener datos para la solicitud
+      const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
+      const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
+      const solicitud = `GE-B-${ciudad}-${new Date().getFullYear().toString().slice(-2)}-${codigo.toString().padStart(5, '0')}`;
+      const titulo = `Solicitud de baja de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre}`;
+      const descripcion = `Solicitud de baja de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
+
+      // Insertar en la tabla de Solicitudes Intranet
+      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
+      // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
+      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
+      //await new Promise(resolve => setTimeout(resolve, 1000));
+      //await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 2, 'ASIGNADA', new Date(), usuarioSolicita]);
+      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'BAJA', '', new Date(), usuarioSolicita]);
+      await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
+
+      // Insertar en Solicitud Sistemas
+      await db.query(
+        'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
+        [usuario, sistema, solicitud, 'BAJA']
+      );
+    }
+
     // Desactivar Sistemas
     await db.query(
       'UPDATE perfiles.sistemas SET xt_estatus = ? WHERE xt_usuario = ? AND xt_sistema = ?',
