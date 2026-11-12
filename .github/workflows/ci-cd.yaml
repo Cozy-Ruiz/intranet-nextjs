@@ -52,6 +52,8 @@ jobs:
           docker buildx build \
             --platform linux/amd64 \
             --tag "$IMAGE_NAME:${{ steps.meta.outputs.tag }}" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
             --push \
             .
 
