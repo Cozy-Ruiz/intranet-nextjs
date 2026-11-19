@@ -10,6 +10,11 @@ ingress:
   className: nginx
   annotations:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Configuración para soportar WebSockets (HMR) en Next.js development
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
   tls:
     - secretName: escalante-wildcard-tls
       hosts:
@@ -21,7 +26,7 @@ ingress:
           pathType: Prefix
 
 env:
-  NODE_ENV: production
+  NODE_ENV: development
   ENVIRONMENT: "DEV"
   NEXT_PUBLIC_ENVIRONMENT: "DEV"
 
