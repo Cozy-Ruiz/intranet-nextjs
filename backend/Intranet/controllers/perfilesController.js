@@ -14,7 +14,6 @@ function decodeLatin1(str) {
 }
 
 // --- Perfiles ---
-
 exports.correoUsuario = async (req, res) => {
   try {
     const { usuario } = req.query;
@@ -76,12 +75,12 @@ exports.enviaCorreo = async (req, res) => {
       port: 587,
       secure: false,
       auth: {
-        user: 'calidad@escalante.com.mx',
-        pass: 'vvjgbgnkdpndqcjd'
+        //user: 'calidad@escalante.com.mx',
+        //pass: 'vvjgbgnkdpndqcjd'
         //user: 'backlog@escalante.com.mx',
         //pass: 'B4ckl0g1234'
-        //user: 'archivos@escalante.com.mx',
-        //pass: 'Esc4l4nt3123'
+        user: 'archivos@escalante.com.mx',
+        pass: 'vpwdnffkxxprcgyk'
       }
     });
 
@@ -90,11 +89,11 @@ exports.enviaCorreo = async (req, res) => {
     const cc = copias && copias.length > 0 ? (Array.isArray(copias) ? copias.join(',') : copias) : undefined;
 
     // Construye la ruta absoluta al PDF
-    const pdfPath = path.join(__dirname, '../perfiles_puestos', perfil_puesto);
+    const pdfPath = path.join(__dirname, '../perfiles_puestos', `${perfil_puesto}.pdf`);
 
     // Envía el correo
     await transporter.sendMail({
-      from: '"Grupo Escalante" <calidad@escalante.com.mx>',
+      from: '"Grupo Escalante" <archivos@escalante.com.mx>',
       to,
       cc,
       subject: asunto,
@@ -112,7 +111,7 @@ exports.enviaCorreo = async (req, res) => {
     res.status(200).json({ status: 'success', message: 'Correo enviado correctamente' });
   } catch (error) {
     console.error('Error al enviar correo:', error);
-    res.status(500).json({ message: 'Error del servidor' });
+    res.status(500).json({ status: 'error', message: 'Error del servidor' });
   }
 };
 
@@ -149,7 +148,7 @@ exports.detalleUsuario = async (req, res) => {
     const usuarioData = rows[0];
 
     const [sistemas] = await db.query(
-      "SELECT s.xt_sistema, s.xt_estatus, (SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = s.xt_sistema AND ss.xt_tipo = 'ALTA' AND ss.xt_usuario = s.xt_usuario ORDER BY xd_fecha DESC LIMIT 1) AS xt_codigoSolicitud, ( SELECT qs.xt_estatus FROM intranet2.sgi_quejas_solicitudes_estatusv2 qs WHERE qs.xt_quejaSolicitud = xt_codigoSolicitud ORDER BY qs.xn_numero DESC LIMIT 1 ) AS xt_estatus_solicitud, ( SELECT sst.xt_codigoEntregable FROM intranet2.sgi_backlog_solicitud_sistemas_temporal sst WHERE sst.xt_quejaSolicitud = xt_codigoSolicitud AND sst.xt_sistema = s.xt_sistema ) AS codigoEntregable, ( SELECT e.xt_etapa FROM backlog.etapas e WHERE e.xt_codigoEntregable = codigoEntregable ORDER BY xn_numero DESC LIMIT 1 ) AS xt_estatus_entregable FROM perfiles.sistemas s WHERE s.xt_usuario = ? ",
+      "SELECT s.xt_sistema, s.xt_estatus, (SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = s.xt_sistema AND ss.xt_usuario = s.xt_usuario ORDER BY xd_fecha DESC LIMIT 1) AS xt_codigoSolicitud, ( SELECT qs.xt_estatus FROM intranet2.sgi_quejas_solicitudes_estatusv2 qs WHERE qs.xt_quejaSolicitud = xt_codigoSolicitud ORDER BY qs.xn_numero DESC LIMIT 1 ) AS xt_estatus_solicitud, ( SELECT sst.xt_codigoEntregable FROM intranet2.sgi_backlog_solicitud_sistemas_temporal sst WHERE sst.xt_quejaSolicitud = xt_codigoSolicitud AND sst.xt_sistema = s.xt_sistema ) AS codigoEntregable, ( SELECT e.xt_etapa FROM backlog.etapas e WHERE e.xt_codigoEntregable = codigoEntregable ORDER BY xn_numero DESC LIMIT 1 ) AS xt_estatus_entregable FROM perfiles.sistemas s WHERE s.xt_usuario = ? ",
       [usuario]
     );
     usuarioData["sistemas"] = sistemas;
@@ -412,6 +411,8 @@ exports.bajaUsuario = async (req, res) => {
     if(sistemas.length > 0){
 
       const [usuarioDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuario]);
+      //const [usuarioSolicitaDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuarioSolicita]);
+
       if (usuarioDetalles.length === 0) {
         return res.status(404).json({ message: 'Usuario no encontrado' });
       }
@@ -419,8 +420,8 @@ exports.bajaUsuario = async (req, res) => {
       const ciudad = usuarioDetalles[0].xt_ciudad == 'CDMX' ? 'CMX' : usuarioDetalles[0].xt_ciudad == 'NLRD' ? 'NLR' : usuarioDetalles[0].xt_ciudad;
 
       // Verificar si ya existe una solicitud previa de alta para el mismo usuario y sistema
-      const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'BAJA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistemas[0].xt_sistema, usuario]);
-      if (solicitudAnterior.length < 1) {
+      //const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'BAJA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistemas[0].xt_sistema, usuario]);
+      //if (solicitudAnterior.length < 1) {
         // Obtener datos para la solicitud
         const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
         const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
@@ -446,30 +447,18 @@ exports.bajaUsuario = async (req, res) => {
             );
           }
 
-          this.bajaSistema({ body: { usuario, sistema: sistema.xt_sistema } });
+          await db.query(
+            'UPDATE perfiles.sistemas SET xt_estatus = ? WHERE xt_usuario = ? AND xt_sistema = ?',
+            ['INACTIVO', usuario, sistema.xt_sistema]
+          );
         }
-      }
-
-      
+      //}
     }
 
     res.status(201).json({ status: 'success', message: 'Usuario desactivado exitosamente' });
   } catch (error) {
     console.error('Error al desactivar usuario:', error);
     res.status(500).json({ status: 'error', message: 'Error del servidor' });
-  }
-};
-
-exports.listaClientes = async (req, res) => {
-  try {
-    const [rows] = await db.query(
-      'SELECT kp_clienteId, xt_nombre, xt_rfc FROM master_ge.master_rfc_clienteId ORDER BY xt_nombre ASC'
-    );
-
-    res.status(200).json({ status: 'success', data: rows });
-  } catch (error) {
-    console.error('Error al obtener la lista de clientes:', error);
-    res.status(500).json({ message: 'Error del servidor' });
   }
 };
 
@@ -483,6 +472,8 @@ exports.altaSistemaExterno = async (req, res) => {
 
   try {
     const [usuarioDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuario]);
+    //const [usuarioSolicitaDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuarioSolicita]);
+
     if (usuarioDetalles.length === 0) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
@@ -490,8 +481,8 @@ exports.altaSistemaExterno = async (req, res) => {
     const ciudad = usuarioDetalles[0].xt_ciudad == 'CDMX' ? 'CMX' : usuarioDetalles[0].xt_ciudad == 'NLRD' ? 'NLR' : usuarioDetalles[0].xt_ciudad;
 
     // Verificar si ya existe una solicitud previa de alta para el mismo usuario y sistema
-    const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'ALTA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistema, usuario]);
-    if (solicitudAnterior.length < 1) {
+    //const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'ALTA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistema, usuario]);
+    //if (solicitudAnterior.length < 1) {
       // Obtener datos para la solicitud
       const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
       const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
@@ -503,23 +494,45 @@ exports.altaSistemaExterno = async (req, res) => {
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
       // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
-      //await new Promise(resolve => setTimeout(resolve, 1000));
-      //await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 2, 'ASIGNADA', new Date(), usuarioSolicita]);
-      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'ALTA', '', new Date(), usuarioSolicita]);
       await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
-
+      
+      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'ALTA', '', new Date(), usuarioSolicita]);
+      
       // Insertar en Solicitud Sistemas
       await db.query(
         'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
         [usuario, sistema, solicitud, 'ALTA']
       );
-    }
+    //}
 
     // Insertar a Sistemas
     await db.query(
       'INSERT INTO perfiles.sistemas (xt_usuario, xt_sistema, xt_estatus) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE xt_estatus = VALUES(xt_estatus)',
       [usuario, sistema, 'ACTIVO']
     );
+
+    /*
+    this.enviaCorreo({ body: {
+      destinatarios: ['${usuario?.xt_correo}', '${usuario?.xt_correoJefeDirecto}','${usuarioSolicitaDetalles[0]?.xt_correo}'],
+      copias: ['cruiz@escalante.com.mx', 'cozy.ruiz@gmail.com'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx'],
+      asunto: `Solicitud alta sistema ${sistema} para ${usuarioDetalles[0]?.xt_nombre}`,
+      perfil_puesto: `${usuario?.xt_puesto}`,
+      mensaje: [
+        `Se registra solicitud de alta al sistema ${sistema} con codigo de solicitud ${solicitud}, estatus PENDIENTE.`,
+        ``,
+        `Para el usuario:`,
+        `Nombre: ${usuarioDetalles[0]?.xt_nombre}`,
+        `RFC: ${usuarioDetalles[0]?.xt_rfc}`,
+        `CURP: ${usuarioDetalles[0]?.xt_curp}`,
+        `Puesto: ${usuarioDetalles[0]?.xt_puesto}`,
+        `Jefe directo: ${usuarioDetalles[0]?.xt_puestoJefeDirecto}`,
+        ``,
+        `Solicitado por: ${usuarioSolicitaDetalles[0]?.xt_nombre}`,
+        ``,
+        `Saludos cordiales.`,
+      ].join('<br>')
+    }});
+    */
 
     // Aquí podrías agregar lógica adicional para notificar al usuario o registrar el evento
     res.status(201).json({ status: 'success', message: `Solicitud de alta de Sistema ${sistema} registrada correctamente` });
@@ -538,6 +551,8 @@ exports.bajaSistemaExterno = async (req, res) => {
 
   try {
     const [usuarioDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuario]);
+    //const [usuarioSolicitaDetalles] = await db.query('SELECT * FROM perfiles.usuarios WHERE xt_usuario = ?', [usuarioSolicita]);
+
     if (usuarioDetalles.length === 0) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
@@ -545,40 +560,76 @@ exports.bajaSistemaExterno = async (req, res) => {
     const ciudad = usuarioDetalles[0].xt_ciudad == 'CDMX' ? 'CMX' : usuarioDetalles[0].xt_ciudad == 'NLRD' ? 'NLR' : usuarioDetalles[0].xt_ciudad;
 
     // Verificar si ya existe una solicitud previa de alta para el mismo usuario y sistema
-    const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'BAJA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistema, usuario]);
-    if (solicitudAnterior.length < 1) {
+    //const [solicitudAnterior] = await db.query("SELECT ss.xt_codigoSolicitud FROM perfiles.solicitud_sistemas ss WHERE ss.xt_sistema = ? AND ss.xt_tipo = 'ALTA' AND ss.xt_usuario = ? ORDER BY xd_fecha DESC LIMIT 1", [sistema, usuario]);
+    //if (solicitudAnterior.length < 1) {
       // Obtener datos para la solicitud
       const [maxNumero] = await db.query(`SELECT MAX(xn_numero) FROM intranet2.SGI_Quejas_Solicitudesv2 WHERE YEAR(xd_fecha) = YEAR(NOW()) AND xt_tipo = 'B' AND xt_ciudad = ? AND xt_grupo = 'GE' `, [ciudad]);
       const codigo = maxNumero[0]['MAX(xn_numero)'] ? maxNumero[0]['MAX(xn_numero)'] + 1 : 1;
       const solicitud = `GE-B-${ciudad}-${new Date().getFullYear().toString().slice(-2)}-${codigo.toString().padStart(5, '0')}`;
-      const titulo = `Solicitud de baja de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre}`;
-      const descripcion = `Solicitud de baja de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
+      const titulo = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre}`;
+      const descripcion = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
 
       // Insertar en la tabla de Solicitudes Intranet
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
       // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
-      //await new Promise(resolve => setTimeout(resolve, 1000));
-      //await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 2, 'ASIGNADA', new Date(), usuarioSolicita]);
-      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'BAJA', '', new Date(), usuarioSolicita]);
       await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
-
+      
+      await db.query('INSERT INTO intranet2.SGI_backlog_solicitud_sistemas_temporal (xt_quejaSolicitud, xt_sistema, xt_tipo, xt_codigoEntregable, xd_fecha, xt_nombreUsuarioAlta) VALUES(?, ?, ?, ?, ?, ?)', [solicitud, sistema, 'BAJA', '', new Date(), usuarioSolicita]);
+      
       // Insertar en Solicitud Sistemas
       await db.query(
         'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
         [usuario, sistema, solicitud, 'BAJA']
       );
-    }
+    //}
 
-    // Desactivar Sistemas
+    // Insertar a Sistemas
     await db.query(
-      'UPDATE perfiles.sistemas SET xt_estatus = ? WHERE xt_usuario = ? AND xt_sistema = ?',
-      ['INACTIVO', usuario, sistema]
+      'INSERT INTO perfiles.sistemas (xt_usuario, xt_sistema, xt_estatus) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE xt_estatus = VALUES(xt_estatus)',
+      [usuario, sistema, 'INACTIVO']
     );
 
-    res.status(201).json({ status: 'success', message: `Usuario desactivado exitosamente en ${sistema}` });
+    /*
+    this.enviaCorreo({ body: {
+      destinatarios: ['${usuario?.xt_correo}', '${usuario?.xt_correoJefeDirecto}','${usuarioSolicitaDetalles[0]?.xt_correo}'],
+      copias: ['cruiz@escalante.com.mx', 'cozy.ruiz@gmail.com'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx'],
+      asunto: `Solicitud alta sistema ${sistema} para ${usuarioDetalles[0]?.xt_nombre}`,
+      perfil_puesto: `${usuario?.xt_puesto}`,
+      mensaje: [
+        `Se registra solicitud de alta al sistema ${sistema} con codigo de solicitud ${solicitud}, estatus PENDIENTE.`,
+        ``,
+        `Para el usuario:`,
+        `Nombre: ${usuarioDetalles[0]?.xt_nombre}`,
+        `RFC: ${usuarioDetalles[0]?.xt_rfc}`,
+        `CURP: ${usuarioDetalles[0]?.xt_curp}`,
+        `Puesto: ${usuarioDetalles[0]?.xt_puesto}`,
+        `Jefe directo: ${usuarioDetalles[0]?.xt_puestoJefeDirecto}`,
+        ``,
+        `Solicitado por: ${usuarioSolicitaDetalles[0]?.xt_nombre}`,
+        ``,
+        `Saludos cordiales.`,
+      ].join('<br>')
+    }});
+    */
+
+    // Aquí podrías agregar lógica adicional para notificar al usuario o registrar el evento
+    res.status(201).json({ status: 'success', message: `Solicitud de alta de Sistema ${sistema} registrada correctamente` });
   } catch (error) {
-    console.error(`Error al desactivar usuario en ${sistema}:`, error);
+    console.error(`Error al registrar alta de Sistema ${sistema} registrada:`, error);
+    res.status(500).json({ status: 'error', message: 'Error del servidor' });
+  }
+};
+
+exports.listaClientes = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT kp_clienteId, xt_nombre, xt_rfc FROM master_ge.master_rfc_clienteId ORDER BY xt_nombre ASC'
+    );
+
+    res.status(200).json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('Error al obtener la lista de clientes:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
@@ -1410,6 +1461,7 @@ exports.eliminaRadarUsuario = async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
 
 // --- Links ---
 exports.catalogoOficinasLinks = async (req, res) =>{

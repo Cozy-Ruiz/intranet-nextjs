@@ -576,11 +576,12 @@ const DetalleUsuario = () => {
     };
 
     const handleToggleAxapta = async () => {
-
+        
         if(session?.session.sesionPuesto !== usuario?.xt_puestoJefeDirecto && session?.session.sesionPuesto !== 'Gerente de Administración' && session?.session.sesionPuesto !== 'Auxiliar Administrativo B' && session?.session.sesionPuesto !== 'Coordinador Administrativo' && session?.session.sesionPuesto !== 'Gerente de Contabilidad' && session?.session.sesionPuesto !== 'Auxiliar Contable' && session?.session.sesionPuesto !== 'Auxiliar de Calidad' && session?.session.sesionPuestoCategoria !== 'Sistemas'){
             alert('No tienes permisos para modificar este usuario.');
             return;
         }
+        
 
         const confirmar = confirm("¿Estás seguro de que deseas cambiar el estado de Axapta?");
         if (!confirmar) return;
@@ -588,6 +589,11 @@ const DetalleUsuario = () => {
         try {
             
             if (!axaptaStatus) {
+
+                if(usuario?.xt_estatus === 'Inactivo' ) {
+                    alert('El usuario está inactivo, no se puede dar de alta AXAPTA.');
+                    return;
+                }
 
                 const response = await fetch('/backend/Intranet/Perfiles/altaSistemaExterno', {
                     method: 'POST',
@@ -600,14 +606,52 @@ const DetalleUsuario = () => {
                 const data = await response.json();
 
                 if (data.status === 'success' || response.ok) {
+
+                    const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                    const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                    const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                    //Envio correo de confirmacion de alta de moódulo
+                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
+                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
+                            asunto: `Alta acceso modulo Axapta al usuario ${usuario?.xt_nombre}`,
+                            perfil_puesto: `${usuario?.xt_puesto}`,
+                            mensaje: [
+                            `Se confirma alta de acceso al modulo Axapta para el usuario:`,
+                            ``,
+                            `Nombre: ${usuario?.xt_nombre}`,
+                            `RFC: ${usuario?.xt_rfc}`,
+                            `CURP: ${usuario?.xt_curp}`,
+                            `Puesto: ${usuario?.xt_puesto}`,
+                            ``,
+                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
+                            ``,
+                            `Saludos cordiales.`,
+                            ].join('<br>')
+                        }),
+                    }).then(() => {
+                        console.log('Correo de alta de acceso a modulo Axapta enviado.');
+                    })
+                    .catch(err => {
+                        console.error('Error al enviar correo de acceso a modulo Axapta.', err);
+                    });
+
                     cargarDetalle(usuario?.xt_usuario || '');
-                    //setLinksStatus(true);
+
                 } else {
                     alert('Error al activar AXAPTA');
                 }
-                
-                //setELearningStatus('pending');
+
             } else if (axaptaStatus) {
+
+                if(usuario?.xt_estatus === 'Inactivo' ) {
+                    alert('El usuario está inactivo, no se puede dar de baja AXAPTA.');
+                    return;
+                }
 
                 const response = await fetch('/backend/Intranet/Perfiles/bajaSistemaExterno', {
                     method: 'POST',
@@ -620,13 +664,45 @@ const DetalleUsuario = () => {
                 const data = await response.json();
 
                 if (data.status === 'success' || response.ok) {
-                    setAxaptaStatus(false);
+
+                    const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                    const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                    const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                    //Envio correo de confirmacion de alta de moódulo
+                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
+                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
+                            asunto: `Baja acceso modulo Axapta al usuario ${usuario?.xt_nombre}`,
+                            perfil_puesto: `${usuario?.xt_puesto}`,
+                            mensaje: [
+                            `Se confirma baja de acceso al modulo Axapta para el usuario:`,
+                            ``,
+                            `Nombre: ${usuario?.xt_nombre}`,
+                            `RFC: ${usuario?.xt_rfc}`,
+                            `CURP: ${usuario?.xt_curp}`,
+                            `Puesto: ${usuario?.xt_puesto}`,
+                            ``,
+                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
+                            ``,
+                            `Saludos cordiales.`,
+                            ].join('<br>')
+                        }),
+                    }).then(() => {
+                        console.log('Correo de baja de acceso a modulo Axapta enviado.');
+                    })
+                    .catch(err => {
+                        console.error('Error al enviar correo de baja de acceso a modulo Axapta.', err);
+                    });
+
+                    cargarDetalle(usuario?.xt_usuario || '');
                 } else {
                     alert('Error al desactivar AXAPTA');
                 }
             }
-
-            //setELearningStatus(prev => !prev);
             
         } catch (err) {
             console.error('Error al llamar al backend:', err);
@@ -887,7 +963,7 @@ const DetalleUsuario = () => {
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
-                body: JSON.stringify({ usuario: usuario?.xt_usuario }),
+                body: JSON.stringify({ usuario: usuario?.xt_usuario, usuarioSolicita: session?.session.sesionUsuario || 'cozy' }), // ajusta los datos según necesites
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -906,16 +982,32 @@ const DetalleUsuario = () => {
                     const resguardoData = await resguardoResponse.json();
                     const articulosResguardo = resguardoData.data || [];
 
-                    // Envía el correo antes de redirigir
-                    console.log('Enviando correo de confirmación...');
-                    fetch('/backend/Intranet/Perfiles/enviaCorreo', {
+                    const sistemasResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${usuario?.xt_usuario}`);
+                    const sistemasData = await sistemasResponse.json();
+                    const sistemasUsuario = sistemasData.data?.sistemas || [];
+
+                    const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                    const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                    const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                    const sistemasConEstatusEntregable = new Set([
+                        'AXAPTA',
+                        'BODEGA',
+                        'CORREO ELECTRONICO',
+                        'MGS-E-LEARNING',
+                        'PEDIMENTO',
+                        'SCIA',
+                    ]);
+
+                    //Envio correo de confirmacion de baja
+                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            destinatarios: ['${usuario?.xt_correoJefeDirecto}'],
-                            copias: ['cruiz@escalante.com.mx','ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx'/*, 'pmoyotl@escalante.com.mx'*/],
+                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
+                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
                             asunto: `Baja usuario ${usuario?.xt_nombre}`,
-                            perfil_puesto: ``,
+                            perfil_puesto: `${usuario?.xt_puesto}`,
                             mensaje: [
                             `Se confirma la baja del usuario:`,
                             ``,
@@ -924,18 +1016,60 @@ const DetalleUsuario = () => {
                             `CURP: ${usuario?.xt_curp}`,
                             `Puesto: ${usuario?.xt_puesto}`,
                             ``,
+                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
+                            ``,
                             `Resguardo:`,
-                            `${articulosResguardo.length > 0 ? articulosResguardo.map((art: any) => `- ${art.xt_articulo}  (${art.xd_fechaAceptacion ? art.xd_fechaAceptacion : 'Pendiente'})`).join('<br>') : 'No tiene artículos en resguardo.'}`,
+                            `${articulosResguardo.length > 0 ? articulosResguardo.map((art: any) => ` - ${art.xt_articulo}  (${art.xd_fechaAceptacion ? art.xd_fechaAceptacion : 'Pendiente'})`).join('<br>') : 'No tiene artículos en resguardo.'}`,
+                            ``,
+                            `Sistemas dados de baja:`,
+                            `${sistemasUsuario.length > 0 ? sistemasUsuario.map((s: any) => {
+                                const estatus = sistemasConEstatusEntregable.has(s.xt_sistema)
+                                    ? s.xt_estatus_entregable || '(PENDIENTE)'
+                                    : '(INACTIVO)';
+                                return ` - ${s.xt_sistema} ${estatus ?? ''}`;
+                            }).join('<br>') : 'No tiene sistemas activos.'}`,
                             ``,
                             `Saludos cordiales.`,
                             ].join('<br>')
                         }),
-                    })//destinatarios, copias, asunto, mensaje, perfil_puesto
-                    .then(() => {
+                    }).then(() => {
                         console.log('Correo de Baja enviado');
                     })
                     .catch(err => {
                         console.error('Error al enviar correo de Baja:', err);
+                    });
+                }else if (endpoint === '/backend/Intranet/Perfiles/altaUsuario') {
+                    const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                    const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                    const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                    //Envio correo de confirmacion de alta de moódulo
+                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
+                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
+                            asunto: `Reactivación usuario ${usuario?.xt_nombre}`,
+                            perfil_puesto: `${usuario?.xt_puesto}`,
+                            mensaje: [
+                            `Se confirma reactivación para el usuario:`,
+                            ``,
+                            `Nombre: ${usuario?.xt_nombre}`,
+                            `RFC: ${usuario?.xt_rfc}`,
+                            `CURP: ${usuario?.xt_curp}`,
+                            `Puesto: ${usuario?.xt_puesto}`,
+                            ``,
+                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
+                            ``,
+                            `Saludos cordiales.`,
+                            ].join('<br>')
+                        }),
+                    }).then(() => {
+                        console.log('Correo de reactivación enviado.');
+                    })
+                    .catch(err => {
+                        console.error('Error al enviar correo de reactivación:', err);
                     });
                 }
 
@@ -986,12 +1120,12 @@ const DetalleUsuario = () => {
                     setLinksStatus(links?.xt_estatus === 'ACTIVO');
                     setEstadisticasStatus(estadisticas?.xt_estatus === 'ACTIVO');
                     setRadarStatus(radar?.xt_estatus === 'ACTIVO');
-                    setELearningStatus(eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable === 'TERMINADA' || eLearning?.xt_estatus_solicitud === 'TERMINADA') ? true : eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA' && eLearning?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : eLearning?.xt_estatus === 'INACTIVO' ? false : false);
-                    setAxaptaStatus(axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable === 'TERMINADA' || axapta?.xt_estatus_solicitud === 'TERMINADA') ? true : axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA' && axapta?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : axapta?.xt_estatus === 'INACTIVO' ? false : false);
-                    setBodegaStatus(bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable === 'TERMINADA' || bodega?.xt_estatus_solicitud === 'TERMINADA') ? true : bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA' && bodega?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : bodega?.xt_estatus === 'INACTIVO' ? false : false);
-                    setPedimentoStatus(pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable === 'TERMINADA' || pedimento?.xt_estatus_solicitud === 'TERMINADA') ? true : pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA' && pedimento?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : pedimento?.xt_estatus === 'INACTIVO' ? false : false);
-                    setSciaStatus(scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable === 'TERMINADA' || scia?.xt_estatus_solicitud === 'TERMINADA') ? true : scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA' && scia?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : scia?.xt_estatus === 'INACTIVO' ? false : false);
-                    setCorreoElectronicoStatus(correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable === 'TERMINADA' || correoElectronico?.xt_estatus_solicitud === 'TERMINADA') ? true : correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable !== 'TERMINADA' && correoElectronico?.xt_estatus_solicitud !== 'TERMINADA') ? 'pending' : correoElectronico?.xt_estatus === 'INACTIVO' ? false : false);
+                    setELearningStatus(eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable === 'TERMINADA') ? true : eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : eLearning?.xt_estatus === 'INACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
+                    setAxaptaStatus(axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable === 'TERMINADA') ? true : axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : axapta?.xt_estatus === 'INACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending': false);
+                    setBodegaStatus(bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable === 'TERMINADA') ? true : bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : bodega?.xt_estatus === 'INACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
+                    setPedimentoStatus(pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable === 'TERMINADA') ? true : pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : pedimento?.xt_estatus === 'INACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending'  : false);
+                    setSciaStatus(scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable === 'TERMINADA') ? true : scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : scia?.xt_estatus === 'INACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
+                    setCorreoElectronicoStatus(correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable === 'TERMINADA') ? true : correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : correoElectronico?.xt_estatus === 'INACTIVO' && (correoElectronico?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
 
                 })
             .catch(err => console.error('Error al obtener detalle:', err));
