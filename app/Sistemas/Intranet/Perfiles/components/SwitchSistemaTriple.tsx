@@ -1,4 +1,4 @@
-type EstadoTriple = true | false | "pending";
+type EstadoTriple = true | false | "pending" | "pending alta" | "pending baja";
 
 type SwitchSistemaTripleProps = {
   nombre: string;
@@ -12,6 +12,8 @@ type SwitchSistemaTripleProps = {
 const estadoLabel = (estado: EstadoTriple) => {
   if (estado === true) return { text: "Activo", color: "text-green-500" };
   if (estado === false) return { text: "Inactivo", color: "text-red-500" };
+  if (estado === "pending alta") return { text: "Alta Pendiente", color: "text-yellow-500" };
+  if (estado === "pending baja") return { text: "Baja Pendiente", color: "text-yellow-500" };
   return { text: "Pendiente", color: "text-yellow-500" };
 };
 
@@ -25,7 +27,7 @@ const SwitchSistemaTriple = ({
 }: SwitchSistemaTripleProps) => {
   // Cambia el estado en orden: false -> pending -> true -> false ...
   const nextEstado = (actual: EstadoTriple): EstadoTriple =>
-    actual === false ? "pending" : actual === "pending" ? true : false;
+    actual === false ? "pending alta" : actual === "pending alta" ? "pending baja" : false;
 
   return (
     <div className="m-5 flex items-center justify-between">
@@ -61,7 +63,7 @@ const SwitchSistemaTriple = ({
           onClick={() => setEstado(nextEstado(estado))}
           className={`
             w-11 h-6 rounded-full flex items-center transition-colors duration-300
-            ${estado === true ? "bg-green-500" : estado === "pending" ? "bg-yellow-400" : "bg-red-500"}
+            ${estado === true ? "bg-green-500" : estado === "pending alta" || estado === "pending baja" ? "bg-yellow-400" : "bg-red-500"}
             relative
           `}
           aria-label="Cambiar estado"
@@ -69,13 +71,15 @@ const SwitchSistemaTriple = ({
           <div
             className={`
               absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300
-              ${estado === true ? "translate-x-5" : estado === "pending" ? "translate-x-5" : ""}
+              ${estado === true ? "translate-x-5" : estado === "pending alta" ? "translate-x-5" : estado === "pending baja" ? "" : ""}
             `}
             style={{
               transform:
                 estado === true
                   ? "translateXX(5)"
-                  : estado === "pending"
+                  : estado === "pending alta"
+                  ? "translateX(0)"
+                  : estado === "pending baja"
                   ? "translateX(0)"
                   : "translateX(0)",
             }}

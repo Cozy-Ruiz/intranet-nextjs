@@ -442,7 +442,7 @@ exports.bajaUsuario = async (req, res) => {
 
             // Insertar en Solicitud Sistemas
             await db.query(
-              'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
+              'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo) VALUES (?, ?, ?, ?)',
               [usuario, sistema.xt_sistema, solicitud, 'BAJA']
             );
           }
@@ -500,7 +500,7 @@ exports.altaSistemaExterno = async (req, res) => {
       
       // Insertar en Solicitud Sistemas
       await db.query(
-        'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
+        'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo) VALUES (?, ?, ?, ?)',
         [usuario, sistema, solicitud, 'ALTA']
       );
     //}
@@ -510,29 +510,6 @@ exports.altaSistemaExterno = async (req, res) => {
       'INSERT INTO perfiles.sistemas (xt_usuario, xt_sistema, xt_estatus) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE xt_estatus = VALUES(xt_estatus)',
       [usuario, sistema, 'ACTIVO']
     );
-
-    /*
-    this.enviaCorreo({ body: {
-      destinatarios: ['${usuario?.xt_correo}', '${usuario?.xt_correoJefeDirecto}','${usuarioSolicitaDetalles[0]?.xt_correo}'],
-      copias: ['cruiz@escalante.com.mx', 'cozy.ruiz@gmail.com'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx'],
-      asunto: `Solicitud alta sistema ${sistema} para ${usuarioDetalles[0]?.xt_nombre}`,
-      perfil_puesto: `${usuario?.xt_puesto}`,
-      mensaje: [
-        `Se registra solicitud de alta al sistema ${sistema} con codigo de solicitud ${solicitud}, estatus PENDIENTE.`,
-        ``,
-        `Para el usuario:`,
-        `Nombre: ${usuarioDetalles[0]?.xt_nombre}`,
-        `RFC: ${usuarioDetalles[0]?.xt_rfc}`,
-        `CURP: ${usuarioDetalles[0]?.xt_curp}`,
-        `Puesto: ${usuarioDetalles[0]?.xt_puesto}`,
-        `Jefe directo: ${usuarioDetalles[0]?.xt_puestoJefeDirecto}`,
-        ``,
-        `Solicitado por: ${usuarioSolicitaDetalles[0]?.xt_nombre}`,
-        ``,
-        `Saludos cordiales.`,
-      ].join('<br>')
-    }});
-    */
 
     // Aquí podrías agregar lógica adicional para notificar al usuario o registrar el evento
     res.status(201).json({ status: 'success', message: `Solicitud de alta de Sistema ${sistema} registrada correctamente` });
@@ -579,7 +556,7 @@ exports.bajaSistemaExterno = async (req, res) => {
       
       // Insertar en Solicitud Sistemas
       await db.query(
-        'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo, xd_fecha) VALUES (?, ?, ?, ?, CURRENT_DATE)',
+        'INSERT IGNORE INTO perfiles.solicitud_sistemas (xt_usuario, xt_sistema, xt_codigoSolicitud, xt_tipo) VALUES (?, ?, ?, ?)',
         [usuario, sistema, solicitud, 'BAJA']
       );
     //}
@@ -590,34 +567,32 @@ exports.bajaSistemaExterno = async (req, res) => {
       [usuario, sistema, 'INACTIVO']
     );
 
-    /*
-    this.enviaCorreo({ body: {
-      destinatarios: ['${usuario?.xt_correo}', '${usuario?.xt_correoJefeDirecto}','${usuarioSolicitaDetalles[0]?.xt_correo}'],
-      copias: ['cruiz@escalante.com.mx', 'cozy.ruiz@gmail.com'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx'],
-      asunto: `Solicitud alta sistema ${sistema} para ${usuarioDetalles[0]?.xt_nombre}`,
-      perfil_puesto: `${usuario?.xt_puesto}`,
-      mensaje: [
-        `Se registra solicitud de alta al sistema ${sistema} con codigo de solicitud ${solicitud}, estatus PENDIENTE.`,
-        ``,
-        `Para el usuario:`,
-        `Nombre: ${usuarioDetalles[0]?.xt_nombre}`,
-        `RFC: ${usuarioDetalles[0]?.xt_rfc}`,
-        `CURP: ${usuarioDetalles[0]?.xt_curp}`,
-        `Puesto: ${usuarioDetalles[0]?.xt_puesto}`,
-        `Jefe directo: ${usuarioDetalles[0]?.xt_puestoJefeDirecto}`,
-        ``,
-        `Solicitado por: ${usuarioSolicitaDetalles[0]?.xt_nombre}`,
-        ``,
-        `Saludos cordiales.`,
-      ].join('<br>')
-    }});
-    */
-
     // Aquí podrías agregar lógica adicional para notificar al usuario o registrar el evento
     res.status(201).json({ status: 'success', message: `Solicitud de alta de Sistema ${sistema} registrada correctamente` });
   } catch (error) {
     console.error(`Error al registrar alta de Sistema ${sistema} registrada:`, error);
     res.status(500).json({ status: 'error', message: 'Error del servidor' });
+  }
+};
+
+exports.bajaSistema = async (req, res) => {
+  const { usuario, usuarioSolicita, sistema } = req.body;
+
+  if (!usuario || !sistema) {
+    return res.status(400).json({ message: 'El usuario y el sistema son obligatorios' });
+  }
+
+  try {
+    // Desactivar Sistemas
+    await db.query(
+      'UPDATE perfiles.sistemas SET xt_estatus = ? WHERE xt_usuario = ? AND xt_sistema = ?',
+      ['INACTIVO', usuario, sistema]
+    );
+
+    res.status(201).json({ status: 'success', message: `Sistema desactivado exitosamente en ${sistema}` });
+  } catch (error) {
+    console.error(`Error al desactivar sistema ${sistema}:`, error);
+    res.status(500).json({ message: 'Error del servidor' });
   }
 };
 

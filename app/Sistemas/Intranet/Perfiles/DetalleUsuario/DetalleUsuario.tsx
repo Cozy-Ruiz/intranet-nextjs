@@ -10,6 +10,7 @@ import ConfiguracionEstadisticas from '../components/ConfiguracionEstadisticas';
 import ConfiguracionLinks from '../components/ConfiguracionLinks';
 import ConfiguracionRadar from '../components/ConfiguracionRadar';
 import { useRouter } from 'next/navigation';
+import { enviarCorreoSistemasAltaBaja } from '../utils/enviarCorreoSistemasAltaBaja';
 
 type UsuarioDB = {
     xt_usuario: string;
@@ -43,7 +44,7 @@ type SesionResponse = {
     session: SesionInnerData;
 };
 
-type TripeEstadoSistemas = true | false | "pending";
+type TripeEstadoSistemas = true | false | "pending" | "pending alta" | "pending baja";
 
 const DetalleUsuario = () => {
 
@@ -76,6 +77,7 @@ const DetalleUsuario = () => {
     const [mostrarConfiguracionLinks, setMostrarConfiguracionLinks] = useState(false)
     const [mostrarConfiguracionRadar, setMostrarConfiguracionRadar] = useState(false)
 
+    /*
     useEffect(() => {
         fetch('https://escalante.com.mx/Sistemas/session.php', {
             credentials: 'include'
@@ -95,6 +97,7 @@ const DetalleUsuario = () => {
                 console.error('Error al obtener la sesión:', err);
             });
     }, []);
+    */
 
     useEffect(() => {
         if (usuarioDetalle) {
@@ -516,6 +519,8 @@ const DetalleUsuario = () => {
         }
     };
 
+    
+
     const handleToggleELearning = async () => {
 
         if(session?.session.sesionPuesto !== usuario?.xt_puestoJefeDirecto && session?.session.sesionPuesto !== 'Gerente de Administración' && session?.session.sesionPuesto !== 'Auxiliar Administrativo B' && session?.session.sesionPuesto !== 'Coordinador Administrativo' && session?.session.sesionPuesto !== 'Gerente de Contabilidad' && session?.session.sesionPuesto !== 'Auxiliar Contable' && session?.session.sesionPuesto !== 'Auxiliar de Calidad' && session?.session.sesionPuestoCategoria !== 'Sistemas'){
@@ -576,19 +581,15 @@ const DetalleUsuario = () => {
     };
 
     const handleToggleAxapta = async () => {
-        
-        if(session?.session.sesionPuesto !== usuario?.xt_puestoJefeDirecto && session?.session.sesionPuesto !== 'Gerente de Administración' && session?.session.sesionPuesto !== 'Auxiliar Administrativo B' && session?.session.sesionPuesto !== 'Coordinador Administrativo' && session?.session.sesionPuesto !== 'Gerente de Contabilidad' && session?.session.sesionPuesto !== 'Auxiliar Contable' && session?.session.sesionPuesto !== 'Auxiliar de Calidad' && session?.session.sesionPuestoCategoria !== 'Sistemas'){
-            alert('No tienes permisos para modificar este usuario.');
-            return;
-        }
-        
+
+        if (!verificarPermisos()) return;
 
         const confirmar = confirm("¿Estás seguro de que deseas cambiar el estado de Axapta?");
         if (!confirmar) return;
 
         try {
             
-            if (!axaptaStatus) {
+            if (!axaptaStatus || axaptaStatus === 'pending baja') {
 
                 if(usuario?.xt_estatus === 'Inactivo' ) {
                     alert('El usuario está inactivo, no se puede dar de alta AXAPTA.');
@@ -611,33 +612,11 @@ const DetalleUsuario = () => {
                     const usuarioSolicitaData = await usuarioSolicitaResponse.json();
                     const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
 
-                    //Envio correo de confirmacion de alta de moódulo
-                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
-                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
-                            asunto: `Alta acceso modulo Axapta al usuario ${usuario?.xt_nombre}`,
-                            perfil_puesto: `${usuario?.xt_puesto}`,
-                            mensaje: [
-                            `Se confirma alta de acceso al modulo Axapta para el usuario:`,
-                            ``,
-                            `Nombre: ${usuario?.xt_nombre}`,
-                            `RFC: ${usuario?.xt_rfc}`,
-                            `CURP: ${usuario?.xt_curp}`,
-                            `Puesto: ${usuario?.xt_puesto}`,
-                            ``,
-                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
-                            ``,
-                            `Saludos cordiales.`,
-                            ].join('<br>')
-                        }),
-                    }).then(() => {
-                        console.log('Correo de alta de acceso a modulo Axapta enviado.');
-                    })
-                    .catch(err => {
-                        console.error('Error al enviar correo de acceso a modulo Axapta.', err);
+                    await enviarCorreoSistemasAltaBaja({
+                        accion: 'alta',
+                        sistema: 'AXAPTA',
+                        usuario,
+                        solicitante: usuarioSolicitaDetalles,
                     });
 
                     cargarDetalle(usuario?.xt_usuario || '');
@@ -646,7 +625,7 @@ const DetalleUsuario = () => {
                     alert('Error al activar AXAPTA');
                 }
 
-            } else if (axaptaStatus) {
+            } else if (axaptaStatus || axaptaStatus === 'pending alta') {
 
                 if(usuario?.xt_estatus === 'Inactivo' ) {
                     alert('El usuario está inactivo, no se puede dar de baja AXAPTA.');
@@ -669,33 +648,11 @@ const DetalleUsuario = () => {
                     const usuarioSolicitaData = await usuarioSolicitaResponse.json();
                     const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
 
-                    //Envio correo de confirmacion de alta de moódulo
-                    await fetch('/backend/Intranet/Perfiles/enviaCorreo', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            destinatarios: [/*`${usuario?.xt_correoJefeDirecto}`,*/ `${usuarioSolicitaDetalles?.xt_correo}`],
-                            copias: ['cruiz@escalante.com.mx'/*,'ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'pmoyotl@escalante.com.mx'*/],
-                            asunto: `Baja acceso modulo Axapta al usuario ${usuario?.xt_nombre}`,
-                            perfil_puesto: `${usuario?.xt_puesto}`,
-                            mensaje: [
-                            `Se confirma baja de acceso al modulo Axapta para el usuario:`,
-                            ``,
-                            `Nombre: ${usuario?.xt_nombre}`,
-                            `RFC: ${usuario?.xt_rfc}`,
-                            `CURP: ${usuario?.xt_curp}`,
-                            `Puesto: ${usuario?.xt_puesto}`,
-                            ``,
-                            `Solicitado por: ${usuarioSolicitaDetalles?.xt_nombre}`,
-                            ``,
-                            `Saludos cordiales.`,
-                            ].join('<br>')
-                        }),
-                    }).then(() => {
-                        console.log('Correo de baja de acceso a modulo Axapta enviado.');
-                    })
-                    .catch(err => {
-                        console.error('Error al enviar correo de baja de acceso a modulo Axapta.', err);
+                    await enviarCorreoSistemasAltaBaja({
+                        accion: 'baja',
+                        sistema: 'AXAPTA',
+                        usuario,
+                        solicitante: usuarioSolicitaDetalles,
                     });
 
                     cargarDetalle(usuario?.xt_usuario || '');
@@ -709,6 +666,8 @@ const DetalleUsuario = () => {
             alert('Ocurrió un error al intentar cambiar el estado.');
         }
     };
+
+    
 
     const handleToggleBodega = async () => {
 
@@ -941,12 +900,183 @@ const DetalleUsuario = () => {
         }
     };
 
-    const handleToggleStatus = async () => {
+    const verificarPermisos = () => {
         
-        if(session?.session.sesionPuesto !== usuario?.xt_puestoJefeDirecto && session?.session.sesionPuesto !== 'Gerente de Administración' && session?.session.sesionPuestoCategoria !== 'Auxiliar Administrativo B' && session?.session.sesionPuestoCategoria !== 'Coordinador Administrativo' && session?.session.sesionPuestoCategoria !== 'Gerente de Contabilidad' && session?.session.sesionPuestoCategoria !== 'Auxiliar Contable' && session?.session.sesionPuestoCategoria !== 'Auxiliar de Calidad' && session?.session.sesionPuestoCategoria !== 'Sistemas'){
+        if(session?.session.sesionPuesto !== usuario?.xt_puestoJefeDirecto && session?.session.sesionPuesto !== 'Gerente de Administración' && session?.session.sesionPuesto !== 'Auxiliar Administrativo B' && session?.session.sesionPuesto !== 'Coordinador Administrativo' && session?.session.sesionPuesto !== 'Gerente de Contabilidad' && session?.session.sesionPuesto !== 'Auxiliar Contable' && session?.session.sesionPuesto !== 'Auxiliar de Calidad' && session?.session.sesionPuestoCategoria !== 'Sistemas'){
             alert('No tienes permisos para modificar este usuario.');
+            return false;
+        }
+        
+        return true;
+    }
+
+    const handleToggleSistemasInternos = async (sistema: string) => {
+        const sistemas: Record<string, {
+            nombre: string;
+            endpoint: string;
+            estado: boolean;
+            setEstado: (estado: boolean) => void;
+            alActivar?: () => void;
+        }> = {
+            INTRANET: {
+                nombre: 'Intranet',
+                endpoint: 'Intranet',
+                estado: intranetStatus,
+                setEstado: setIntranetStatus,
+            },
+            EXTRACTOR: {
+                nombre: 'Extractor',
+                endpoint: 'Extractor',
+                estado: extractorStatus,
+                setEstado: setExtractorStatus,
+                alActivar: () => setMostrarConfiguracionExtractor(true),
+            },
+            REPORTES: {
+                nombre: 'Reportes',
+                endpoint: 'Reportes',
+                estado: reportesStatus,
+                setEstado: setReportesStatus,
+            },
+            'AUDITORIA DATOS': {
+                nombre: 'Auditoria Datos',
+                endpoint: 'AuditoriaDatos',
+                estado: auditoriaDatosStatus,
+                setEstado: setAuditoriaDatosStatus,
+            },
+            BACKLOG: {
+                nombre: 'Backlog',
+                endpoint: 'Backlog',
+                estado: backlogStatus,
+                setEstado: setBacklogStatus,
+            },
+            ESTADISTICAS: {
+                nombre: 'Estadísticas',
+                endpoint: 'Estadisticas',
+                estado: estadisticasEstatus,
+                setEstado: setEstadisticasStatus,
+                alActivar: () => setMostrarConfiguracionEstadisticas(true),
+            },
+            RADAR: {
+                nombre: 'Radar',
+                endpoint: 'Radar',
+                estado: radarStatus,
+                setEstado: setRadarStatus,
+            },
+            LINKS: {
+                nombre: 'Links',
+                endpoint: 'Links',
+                estado: linksStatus,
+                setEstado: setLinksStatus,
+            },
+        };
+        const sistemaConfig = sistemas[sistema];
+
+        if (!sistemaConfig) {
+            console.error(`Sistema interno no reconocido: ${sistema}`);
             return;
         }
+
+        if (!verificarPermisos()) return;
+
+        const accion = sistemaConfig.estado ? 'baja' : 'alta';
+
+        if (usuario?.xt_estatus === 'Inactivo') {
+            alert(`El usuario está inactivo, no se puede ${accion === 'alta' ? 'activar' : 'desactivar'} ${sistemaConfig.nombre}.`);
+            return;
+        }
+
+        const confirmar = confirm(`¿Estás seguro de que deseas cambiar el estado de ${sistemaConfig.nombre}?`);
+        if (!confirmar) return;
+
+        try {
+            const response = await fetch(`/backend/Intranet/Perfiles/${accion}${sistemaConfig.endpoint}`, {
+                method: 'POST',
+                body: JSON.stringify({ usuario: usuario?.xt_usuario }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success || data.status === 'success' || response.ok) {
+                sistemaConfig.setEstado(!sistemaConfig.estado);
+                if (accion === 'alta') sistemaConfig.alActivar?.();
+
+                const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                await enviarCorreoSistemasAltaBaja({
+                    accion,
+                    sistema,
+                    usuario,
+                    solicitante: usuarioSolicitaDetalles,
+                });
+            } else {
+                alert(`Error al ${accion === 'alta' ? 'activar' : 'desactivar'} ${sistemaConfig.nombre}`);
+            }
+        } catch (err) {
+            console.error('Error al llamar al backend:', err);
+            alert('Ocurrió un error al intentar cambiar el estado.');
+        }
+    };
+
+    const handleToggleSistemasExternos = async (sistema: string, estado: TripeEstadoSistemas) => {
+
+        if (!verificarPermisos()) return;
+
+        const accion = !estado || estado === 'pending baja' ? 'alta' : 'baja';
+        const accionCapitalizada = accion === 'alta' ? 'activar' : 'desactivar';
+
+        const confirmar = confirm(`¿Estás seguro que deseas cambiar el estado de ${sistema}?`);
+        if (!confirmar) return;
+
+        if (usuario?.xt_estatus === 'Inactivo') {
+            alert(`El usuario está inactivo, no se puede ${accionCapitalizada} ${sistema}.`);
+            return;
+        }
+
+        try {
+            const response = await fetch(`/backend/Intranet/Perfiles/${accion}SistemaExterno`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    usuario: usuario?.xt_usuario,
+                    usuarioSolicita: session?.session.sesionUsuario || 'cozy',
+                    sistema,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success' || response.ok) {
+                const usuarioSolicitaResponse = await fetch(`/backend/Intranet/Perfiles/detalleUsuario?usuario=${session?.session.sesionUsuario || 'cozy'}`);
+                const usuarioSolicitaData = await usuarioSolicitaResponse.json();
+                const usuarioSolicitaDetalles = usuarioSolicitaData.data || [];
+
+                await enviarCorreoSistemasAltaBaja({
+                    accion,
+                    sistema,
+                    usuario,
+                    solicitante: usuarioSolicitaDetalles,
+                });
+
+                cargarDetalle(usuario?.xt_usuario || '');
+            } else {
+                alert(`Error al ${accionCapitalizada} ${sistema}`);
+            }
+        } catch (err) {
+            console.error('Error al llamar al backend:', err);
+            alert(`Ocurrió un error al intentar cambiar el estado a ${sistema}.`);
+        }
+    };
+
+    const handleToggleStatus = async () => {
+        
+        if (!verificarPermisos()) return;
         
         if (usuario && usuario.xt_estatus === 'Activo') {
             const confirmar = confirm("¿Estás seguro de que deseas desactivar el usuario?");
@@ -974,7 +1104,7 @@ const DetalleUsuario = () => {
             if (data.status === 'success' || response.ok) {
 
                 setUsuario(prev => prev ? { ...prev, xt_estatus: prev.xt_estatus === 'Activo' ? 'Inactivo' : 'Activo' } : prev);
-
+                
                 if (endpoint === '/backend/Intranet/Perfiles/bajaUsuario') {
 
                     //Obtengo lista de de articulos de resguado del usuario
@@ -1120,12 +1250,12 @@ const DetalleUsuario = () => {
                     setLinksStatus(links?.xt_estatus === 'ACTIVO');
                     setEstadisticasStatus(estadisticas?.xt_estatus === 'ACTIVO');
                     setRadarStatus(radar?.xt_estatus === 'ACTIVO');
-                    setELearningStatus(eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable === 'TERMINADA') ? true : eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : eLearning?.xt_estatus === 'INACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
-                    setAxaptaStatus(axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable === 'TERMINADA') ? true : axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : axapta?.xt_estatus === 'INACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending': false);
-                    setBodegaStatus(bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable === 'TERMINADA') ? true : bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : bodega?.xt_estatus === 'INACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
-                    setPedimentoStatus(pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable === 'TERMINADA') ? true : pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : pedimento?.xt_estatus === 'INACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending'  : false);
-                    setSciaStatus(scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable === 'TERMINADA') ? true : scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : scia?.xt_estatus === 'INACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
-                    setCorreoElectronicoStatus(correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable === 'TERMINADA') ? true : correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : correoElectronico?.xt_estatus === 'INACTIVO' && (correoElectronico?.xt_estatus_entregable !== 'TERMINADA') ? 'pending' : false);
+                    setELearningStatus(eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable === 'TERMINADA') ? true : eLearning?.xt_estatus === 'ACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending alta' : eLearning?.xt_estatus === 'INACTIVO' && (eLearning?.xt_estatus_entregable !== 'TERMINADA') ? 'pending baja' : false);
+                    setAxaptaStatus(axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable === 'TERMINADA') ? true : axapta?.xt_estatus === 'ACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending alta' : axapta?.xt_estatus === 'INACTIVO' && (axapta?.xt_estatus_entregable !== 'TERMINADA') ? 'pending baja': false);
+                    setBodegaStatus(bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable === 'TERMINADA') ? true : bodega?.xt_estatus === 'ACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending alta' : bodega?.xt_estatus === 'INACTIVO' && (bodega?.xt_estatus_entregable !== 'TERMINADA') ? 'pending baja' : false);
+                    setPedimentoStatus(pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable === 'TERMINADA') ? true : pedimento?.xt_estatus === 'ACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending alta' : pedimento?.xt_estatus === 'INACTIVO' && (pedimento?.xt_estatus_entregable !== 'TERMINADA') ? 'pending baja'  : false);
+                    setSciaStatus(scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable === 'TERMINADA') ? true : scia?.xt_estatus === 'ACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending alta' : scia?.xt_estatus === 'INACTIVO' && (scia?.xt_estatus_entregable !== 'TERMINADA') ? 'pending baja' : false);
+                    setCorreoElectronicoStatus(correoElectronico?.xt_estatus === 'ACTIVO' && (correoElectronico?.xt_estatus_entregable === 'TERMINADA') ? true : correoElectronico?.xt_estATUS === 'ACTIVO' && (correoElectronico?.xt_ESTADO_ENTREGABLE !== 'TERMINADA') ? 'pending alta' : correoElectronico?. xt_ESTADO === 'INACTIVO' && (correoElectronico?. xt_ESTADO_ENTREGABLE !== 'TERMINADA') ? 'pending baja' : false);
 
                 })
             .catch(err => console.error('Error al obtener detalle:', err));
@@ -1225,7 +1355,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Auditoría de Datos"
                     estado={auditoriaDatosStatus}
-                    setEstado={handleToggleAuditoriaDatos}
+                    setEstado={() => { void handleToggleSistemasInternos('AUDITORIA DATOS'); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1234,7 +1364,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="Axapta"
                     estado={axaptaStatus}
-                    setEstado={handleToggleAxapta}
+                    setEstado={() => { void handleToggleSistemasExternos('AXAPTA', axaptaStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1243,7 +1373,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Backlog"
                     estado={backlogStatus}
-                    setEstado={handleToggleBacklog}
+                    setEstado={() => { void handleToggleSistemasInternos('BACKLOG'); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1252,7 +1382,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="Bodega"
                     estado={bodegaStatus}
-                    setEstado={handleToggleBodega}
+                    setEstado={() => { void handleToggleSistemasExternos('BODEGA', bodegaStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1261,7 +1391,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="Correo Electrónico"
                     estado={correoElectronicoStatus}
-                    setEstado={handleToggleCorreoElectronico}
+                    setEstado={() => { void handleToggleSistemasExternos('CORREO ELECTRONICO', correoElectronicoStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1270,7 +1400,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Estadísticas"
                     estado={estadisticasEstatus}
-                    setEstado={handleToggleEstadisticas}
+                    setEstado={() => { void handleToggleSistemasInternos('ESTADISTICAS'); }}
                     hasConfiguracion={true}
                     estadoConfiguracion={mostrarConfiguracionEstadisticas}
                     setConfiguracion={setMostrarConfiguracionEstadisticas}
@@ -1279,7 +1409,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Extractor"
                     estado={extractorStatus}
-                    setEstado={handleToggleExtractor}
+                    setEstado={() => { void handleToggleSistemasInternos('EXTRACTOR'); }}
                     hasConfiguracion={true}
                     estadoConfiguracion={mostrarConfiguracionExtractor}
                     setConfiguracion={setMostrarConfiguracionExtractor}
@@ -1288,7 +1418,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Intranet"
                     estado={intranetStatus}
-                    setEstado={handleToggleIntranet}
+                    setEstado={() => { void handleToggleSistemasInternos('INTRANET'); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1297,7 +1427,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Links"
                     estado={linksStatus}
-                    setEstado={handleToggleLinks}
+                    setEstado={() => { void handleToggleSistemasInternos('LINKS'); }}
                     hasConfiguracion={true}
                     estadoConfiguracion={mostrarConfiguracionLinks}
                     setConfiguracion={setMostrarConfiguracionLinks}
@@ -1306,7 +1436,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="MGS-E-Learning"
                     estado={eLearningStatus}
-                    setEstado={handleToggleELearning}
+                    setEstado={() => { void handleToggleSistemasExternos('MGS-E-LEARNING', eLearningStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1315,7 +1445,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="Pedimento"
                     estado={pedimentoStatus}
-                    setEstado={handleTogglePedimento}
+                    setEstado={() => { void handleToggleSistemasExternos('PEDIMENTO', pedimentoStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1324,7 +1454,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Radar"
                     estado={radarStatus}
-                    setEstado={handleToggleRadar}
+                    setEstado={() => { void handleToggleSistemasInternos('RADAR'); }}
                     hasConfiguracion={true}
                     estadoConfiguracion={mostrarConfiguracionRadar}
                     setConfiguracion={setMostrarConfiguracionRadar}
@@ -1333,7 +1463,7 @@ const DetalleUsuario = () => {
                 <SwitchSistema
                     nombre="Reportes"
                     estado={reportesStatus}
-                    setEstado={handleToggleReportes}
+                    setEstado={() => { void handleToggleSistemasInternos('REPORTES'); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
@@ -1342,7 +1472,7 @@ const DetalleUsuario = () => {
                 <SwitchSistemaTriple
                     nombre="Scia"
                     estado={sciaStatus}
-                    setEstado={handleToggleSCIA}
+                    setEstado={() => { void handleToggleSistemasExternos('SCIA', sciaStatus); }}
                     hasConfiguracion={false}
                     estadoConfiguracion={false}
                     setConfiguracion={() => {}}
