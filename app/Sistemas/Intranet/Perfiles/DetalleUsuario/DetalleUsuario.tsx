@@ -77,7 +77,7 @@ const DetalleUsuario = () => {
     const [mostrarConfiguracionLinks, setMostrarConfiguracionLinks] = useState(false)
     const [mostrarConfiguracionRadar, setMostrarConfiguracionRadar] = useState(false)
 
-    /*
+    
     useEffect(() => {
         fetch('https://escalante.com.mx/Sistemas/session.php', {
             credentials: 'include'
@@ -97,7 +97,7 @@ const DetalleUsuario = () => {
                 console.error('Error al obtener la sesión:', err);
             });
     }, []);
-    */
+    
 
     useEffect(() => {
         if (usuarioDetalle) {
