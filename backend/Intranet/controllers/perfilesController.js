@@ -430,7 +430,7 @@ exports.bajaUsuario = async (req, res) => {
         const descripcion = `Solicitud de baja total de Sistemas para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
 
         // Insertar en la tabla de Solicitudes Intranet
-        await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
+        await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'SIN ASIGNAR', 'Gerente_Sistemas']);
         // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
         await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
         await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
@@ -491,7 +491,7 @@ exports.altaSistemaExterno = async (req, res) => {
       const descripcion = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
 
       // Insertar en la tabla de Solicitudes Intranet
-      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
+      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'SIN ASIGNAR', 'Gerente_Sistemas']);
       // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
       await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);
@@ -547,7 +547,7 @@ exports.bajaSistemaExterno = async (req, res) => {
       const descripcion = `Solicitud de alta de Sistema ${sistema} para el usuario ${usuarioDetalles[0].xt_nombre} de la oficina ${usuarioDetalles[0].xt_ciudad}`;
 
       // Insertar en la tabla de Solicitudes Intranet
-      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'ASIGNADA', 'Gerente_Sistemas']);
+      await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudesv2(xt_quejaSolicitud, xt_titulo, xt_tipo, xt_tipoSolicitud, xt_grupo, xt_ciudad, xd_fecha, xn_numero, xt_descripcion, kf_usuarioId, xt_status, xt_pdr) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [solicitud, titulo, 'B', 'AB', 'GE', ciudad, new Date(), codigo, descripcion, usuarioSolicita, 'SIN ASIGNAR', 'Gerente_Sistemas']);
       // Insertar en la tabla de Quejas_Solicitudes_Estatusv2
       await db.query('INSERT INTO intranet2.SGI_Quejas_Solicitudes_Estatusv2 (xt_quejaSolicitud, xn_numero, xt_estatus, xd_fecha, kf_usuario) VALUES(?, ?, ?, ?, ?)', [solicitud, 1, 'SIN ASIGNAR', new Date(), usuarioSolicita]);
       await db.query('INSERT INTO intranet2.SGI_backlog_prioridad (xt_quejaSolicitud, xt_prioridad, xt_usuario, xt_justificacion, xd_fecha) VALUES(?, ?, ?, ?, ?)', [solicitud, 'Normal', 'Gerente_Sistemas', '', new Date()]);

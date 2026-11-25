@@ -4,6 +4,7 @@ type DatosUsuarioCorreo = {
     xt_curp?: string | null;
     xt_puesto?: string | null;
     xt_correo?: string | null;
+    xt_correoJefeDirecto?: string | null;
 } | null;
 
 type EnviarCorreoSistemasAltaBajaParams = {
@@ -27,8 +28,8 @@ export async function enviarCorreoSistemasAltaBaja({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                destinatarios: [solicitante?.xt_correo ?? ''],
-                copias: ['cruiz@escalante.com.mx'],
+                destinatarios: [solicitante?.xt_correo ?? '', usuario?.xt_correo ?? '', usuario?.xt_correoJefeDirecto ?? ''],
+                copias: ['cruiz@escalante.com.mx','ealdana@multiglobalservicios.com', 'sdelap@escalante.com.mx', 'gsistemas@escalante.com.mx',/*'pmoyotl@escalante.com.mx'*/],
                 asunto: `${accionCapitalizada} acceso modulo ${nombreSistema} al usuario ${usuario?.xt_nombre ?? ''}`,
                 perfil_puesto: usuario?.xt_puesto ?? '',
                 mensaje: [
